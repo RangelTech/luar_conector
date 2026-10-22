@@ -169,9 +169,10 @@ func handleSession(nc ssh.NewChannel) {
 				if err := srv.Serve(); err != nil && err != io.EOF {
 					log.Printf("sftp: %v", err)
 				}
+				// o exit-status precisa sair ANTES de srv.Close(), que fecha o canal
+				_, _ = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
 				_ = srv.Close()
 			}
-			_, _ = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
 			return
 		case "exec", "shell":
 			command := ""
