@@ -166,7 +166,9 @@ func handleSession(nc ssh.NewChannel) {
 			_ = req.Reply(true, nil)
 			srv, err := sftp.NewServer(ch)
 			if err == nil {
-				_ = srv.Serve()
+				if err := srv.Serve(); err != nil && err != io.EOF {
+					log.Printf("sftp: %v", err)
+				}
 				_ = srv.Close()
 			}
 			_, _ = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
