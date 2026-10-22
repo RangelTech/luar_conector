@@ -169,6 +169,7 @@ func handleSession(nc ssh.NewChannel) {
 				_ = srv.Serve()
 				_ = srv.Close()
 			}
+			_, _ = ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
 			return
 		case "exec", "shell":
 			command := ""
