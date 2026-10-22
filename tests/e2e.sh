@@ -2,7 +2,7 @@
 # Teste ponta a ponta: hub + conector pareado + ssh/sftp pelo relay. Roda no CI (Linux).
 set -euo pipefail
 D=$(mktemp -d); trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
-trap 'echo "FALHOU na linha $LINENO"; tail -30 $D/hub.log $D/conn.log 2>/dev/null' ERR
+trap 'echo "FALHOU na linha $LINENO"; tail -30 $D/hub.log $D/pc/conector.log 2>/dev/null' ERR
 export HUB_DATA=$D/hub HUB_INTERNAL_TOKEN=tok-interno HUB_RELAY_SECRET=segredo HUB_ADDR=127.0.0.1:18080 HUB_RELAY_ADDR=127.0.0.1:12222
 ./dist/hub > $D/hub.log 2>&1 &
 sleep 1
