@@ -126,8 +126,7 @@ func guided() {
 		hub = "https://conector.rangeltech.net"
 	}
 	fmt.Print("Digite o código de pareamento mostrado na plataforma: ")
-	code, _ := bufio.NewReader(os.Stdin).ReadString('
-')
+	code, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err := doPair(strings.TrimRight(hub, "/"), strings.TrimSpace(code)); err != nil {
 		fmt.Println("Não foi possível parear:", err)
 	} else if err := installService(); err != nil {
@@ -136,6 +135,5 @@ func guided() {
 		fmt.Println("Pronto! O computador aparece como online na plataforma.")
 	}
 	fmt.Print("Pressione Enter para fechar...")
-	_, _ = bufio.NewReader(os.Stdin).ReadString('
-')
+	_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 }
