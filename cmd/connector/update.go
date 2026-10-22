@@ -79,11 +79,12 @@ func restart(self string) {
 
 func updateLoop(c *config) {
 	rollbackWatch()
+	time.Sleep(time.Minute) // primeira conferência logo depois de conectar; depois a cada 6 horas
 	for {
-		time.Sleep(6 * time.Hour)
 		if err := checkUpdate(c); err != nil {
 			log.Printf("atualização: %v", err)
 		}
+		time.Sleep(6 * time.Hour)
 	}
 }
 
