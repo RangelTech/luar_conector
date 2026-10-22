@@ -84,6 +84,9 @@ func updateLoop(c *config) {
 		if err := checkUpdate(c); err != nil {
 			log.Printf("atualização: %v", err)
 		}
+		if err := kitEnsure(c); err != nil {
+			log.Printf("kit: %v", err)
+		}
 		time.Sleep(6 * time.Hour)
 	}
 }

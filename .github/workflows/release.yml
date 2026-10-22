@@ -22,6 +22,8 @@ jobs:
           mkdir -p dist
           go build -o dist/hub ./cmd/hub && go build -o dist/connector ./cmd/connector
           bash tests/e2e.sh
+      - name: Kits Python (Windows e Linux)
+        run: bash scripts/build_kits.sh
       - name: Build da imagem
         run: |
           V="${{ inputs.version }}"

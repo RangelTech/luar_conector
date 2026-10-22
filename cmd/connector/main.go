@@ -89,9 +89,28 @@ func main() {
 			return
 		}
 		runForever(c)
+	case "kit":
+		c, err := loadConfig()
+		if err != nil {
+			log.Fatalf("computador não pareado: %v", err)
+		}
+		if len(os.Args) > 2 && os.Args[2] == "status" {
+			fmt.Printf("kit: %q em %s\n", kitInstalled(), kitPython())
+			return
+		}
+		if err := kitEnsure(c); err != nil {
+			log.Fatalf("falha no kit: %v", err)
+		}
+		fmt.Println("kit pronto:", kitPython())
 	case "install":
 		if err := installService(); err != nil {
 			log.Fatalf("falha ao instalar: %v", err)
+		}
+		if c, err := loadConfig(); err == nil {
+			fmt.Println("Baixando o Python portátil da LUAR (uma vez)...")
+			if err := kitEnsure(c); err != nil {
+				fmt.Println("Aviso: o kit Python não foi baixado agora (tenta de novo sozinho):", err)
+			}
 		}
 	case "uninstall":
 		if err := uninstallService(); err != nil {

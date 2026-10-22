@@ -13,6 +13,7 @@ RUN set -e; mkdir -p /out/releases; \
       CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w -X main.Version=${VERSION}" -o /out/releases/luar-conector-$t$ext ./cmd/connector; \
     done; \
     cp scripts/install.sh scripts/luar-relay.py /out/releases/; \
+    if [ -d /src/kits ]; then cp -r /src/kits /out/releases/kits; fi; \
     cd /out/releases && python3 /src/scripts/mklatest.py "${VERSION}"
 
 FROM alpine:3.20
