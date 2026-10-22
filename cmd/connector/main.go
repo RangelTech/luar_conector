@@ -13,9 +13,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // Version é definida no build (-ldflags "-X main.Version=...").
@@ -34,7 +36,7 @@ func configDir() string {
 		return v
 	}
 	if runtime.GOOS == "windows" {
-		return filepath.Join(os.Getenv("ProgramData"), "LUAR", "conector")
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "LUAR", "conector")
 	}
 	if os.Geteuid() == 0 {
 		return "/etc/luar-conector"
@@ -82,6 +84,10 @@ func main() {
 			log.Fatalf("computador não pareado: %v", err)
 		}
 		setupLog()
+		if os.Getenv("LUAR_WORKER") != "1" {
+			supervise() // processo pai: reinicia o trabalhador se ele cair
+			return
+		}
 		runForever(c)
 	case "install":
 		if err := installService(); err != nil {
@@ -136,4 +142,26 @@ func guided() {
 	}
 	fmt.Print("Pressione Enter para fechar...")
 	_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
+}
+
+// supervise roda o conector como processo filho e o reinicia sempre que ele terminar (queda,
+// atualização ou erro), com espera crescente. Mantém tudo no usuário, sem exigir administrador.
+func supervise() {
+	exe, _ := os.Executable()
+	wait := 2 * time.Second
+	for {
+		started := time.Now()
+		cmd := exec.Command(exe, "run")
+		cmd.Env = append(os.Environ(), "LUAR_WORKER=1")
+		hideWindow(cmd)
+		err := cmd.Run()
+		log.Printf("conector encerrou (%v); reiniciando", err)
+		if time.Since(started) > time.Minute {
+			wait = 2 * time.Second
+		}
+		time.Sleep(wait)
+		if wait < time.Minute {
+			wait *= 2
+		}
+	}
 }

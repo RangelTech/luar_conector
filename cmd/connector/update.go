@@ -75,11 +75,7 @@ func swap(from, to string) error {
 }
 
 func restart(self string) {
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command(self, "run")
-		_ = cmd.Start() // o novo processo assume; este sai
-	}
-	os.Exit(0) // systemd (Restart=always) sobe de novo no Linux
+	os.Exit(0) // o supervisor (processo pai) sobe a versão nova
 }
 
 func updateLoop(c *config) {
