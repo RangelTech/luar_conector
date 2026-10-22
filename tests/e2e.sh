@@ -20,7 +20,7 @@ SSHO="-i $D/conn_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKn
 OUT=$(eval ssh $SSHO -q x@xpto "echo ola-do-computador")
 [ "$OUT" = "ola-do-computador" ] || { echo "ssh falhou: $OUT"; exit 1; }
 echo "teste de arquivo" > $D/a.txt
-eval scp -q $SSHO $D/a.txt x@xpto:$D/b.txt
+eval scp -v $SSHO $D/a.txt x@xpto:$D/b.txt
 [ "$(cat $D/b.txt)" = "teste de arquivo" ] || { echo "scp falhou"; exit 1; }
 # token invalido
 if python3 scripts/luar-relay.py 127.0.0.1 12222 invalido </dev/null 2>/dev/null; then echo "token invalido aceito"; exit 1; fi
