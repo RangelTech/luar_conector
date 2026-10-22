@@ -1,0 +1,49 @@
+name: Release
+# Publica a imagem do hub (com os binarios do conector para OTA/instalacao) + manifesto. NAO faz deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versao (ex.: v0.1.1)"
+        required: true
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go mod tidy
+      - name: E2E
+        run: |
+          mkdir -p dist
+          go build -o dist/hub ./cmd/hub && go build -o dist/connector ./cmd/connector
+          bash tests/e2e.sh
+      - name: Build da imagem
+        run: |
+          V="${{ inputs.version }}"
+          docker build --build-arg VERSION="$V" -t "luar-conector-hub:${V}" .
+          docker save "luar-conector-hub:${V}" | gzip -9 > image.tar.gz
+          echo "IMAGE_ID=sha256:$(gunzip -c image.tar.gz | tar -xO manifest.json | python3 -c "import sys,json,re;print(re.sub(r'^.*/','',json.load(sys.stdin)[0]['Config']).replace('.json',''))")" >> "$GITHUB_ENV"
+          echo "ARCHIVE_SHA=$(sha256sum image.tar.gz | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Manifesto
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime
+          v = "${{ inputs.version }}"
+          m = {"schema": 1, "service": "luar-conector-hub", "repo": "RangelTech/luar_conector", "commit": os.environ["GITHUB_SHA"][:7], "version": v,
+               "artifact": {"type": "docker-archive", "asset": "image.tar.gz", "sha256": os.environ["ARCHIVE_SHA"], "image_id": os.environ["IMAGE_ID"], "tag": "luar-conector-hub:" + v},
+               "built_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+               "healthcheck": {"path": "/health", "expect": 200, "timeout_s": 60, "port": 8080},
+               "env": {"required": ["HUB_INTERNAL_TOKEN", "HUB_RELAY_SECRET", "HUB_PUBLIC_URL"]}, "resources": {"memory": "256m", "cpus": "0.5"}}
+          json.dump(m, open("release-manifest.json", "w"), indent=2)
+          PY
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ inputs.version }}"
+          gh release create "$V" release-manifest.json image.tar.gz --title "$V" --notes "Hub do conector. Deploy: somente vps_rt_infra." --target "${GITHUB_SHA}" || gh release upload "$V" release-manifest.json image.tar.gz --clobber

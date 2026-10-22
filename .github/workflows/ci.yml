@@ -1,0 +1,24 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go mod tidy
+      - run: go vet ./...
+      - name: Build (Linux, Windows)
+        run: |
+          mkdir -p dist
+          go build -o dist/hub ./cmd/hub
+          go build -o dist/connector ./cmd/connector
+          GOOS=windows GOARCH=amd64 go build -o dist/connector.exe ./cmd/connector
+          GOOS=linux GOARCH=arm64 go build -o dist/connector-arm64 ./cmd/connector
+      - name: E2E (hub + conector + ssh/scp/tunel pelo relay)
+        run: bash tests/e2e.sh
