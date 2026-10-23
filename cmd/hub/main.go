@@ -418,6 +418,31 @@ func (h *hub) dial(hostID string) (io.ReadWriteCloser, error) {
 	}
 }
 
+// handleRelayWS é o relay por WebSocket seguro (porta 443), que o ambiente da empresa consegue
+// alcançar (o firewall do ambiente só libera 80/443). Autenticação pelo mesmo token HMAC curto.
+func (h *hub) handleRelayWS(w http.ResponseWriter, r *http.Request) {
+	tok := r.URL.Query().Get("token")
+	if tok == "" {
+		tok = strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	}
+	hostID, ok := h.verifyRelay(tok)
+	if !ok {
+		http.Error(w, "token invalido", 403)
+		return
+	}
+	dst, err := h.dial(hostID)
+	if err != nil {
+		http.Error(w, err.Error(), 502)
+		return
+	}
+	ws, err := h.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		_ = dst.Close()
+		return
+	}
+	wsconn.Pipe(wsconn.New(ws), dst)
+}
+
 // ---- relay TCP interno (ambiente da empresa -> hub) -------------------------------------
 
 func (h *hub) serveRelay(ln net.Listener) {
@@ -497,6 +522,7 @@ func main() {
 	mux.HandleFunc("/internal/hosts", h.handleHosts)
 	mux.HandleFunc("/internal/hosts/", h.handleRevoke)
 	mux.HandleFunc("/internal/relay-token", h.handleRelayToken)
+	mux.HandleFunc("/relay", h.handleRelayWS)
 	mux.HandleFunc("/agent/pair", h.handleAgentPair)
 	mux.HandleFunc("/agent/ctrl", h.handleCtrl)
 	mux.HandleFunc("/agent/data", h.handleData)
